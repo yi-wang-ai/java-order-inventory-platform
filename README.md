@@ -88,7 +88,22 @@ APP_API_KEY="$(sed -n 's/^APP_API_KEY=//p' .env)" ./scripts/demo.sh
 
 14 Maven tests + 21 standalone domain assertions pass on Java 21/22/27. See [test report](docs/TEST_REPORT.md).
 
-## 6. Documentation
+## 6. Verified Results (Docker Integration Test)
+
+Tested on macOS with Docker Desktop. Full stack (`docker compose up --build`) deploys MySQL 8.4, Redis 7.4, RabbitMQ 4.1, and the Spring Boot API. End-to-end test via `scripts/demo.sh`:
+
+- **Product creation** — `POST /api/products` creates DEMO SKU with stock=5, cached in Redis
+- **Order placement** — `POST /api/orders` deducts stock atomically (5→3 for qty=2)
+- **Idempotency** — replay with same idempotency key returns same order ID, stock stays at 3
+- **Cancellation** — `POST /api/orders/{id}/cancel` restores stock (3→5), recorded as CANCELLED
+- **Event delivery** — transactional outbox publishes 2 events (ORDER_CREATED, ORDER_CANCELLED) to RabbitMQ, confirmed delivered within seconds
+
+### Limitations
+
+- **No horizontal scaling tested.** The outbox publisher is single-instance; clustered deployment would need leader election or partitioned polling.
+- **No load/stress testing.** Concurrent oversell prevention is tested in unit tests but not under real contention with multiple API instances.
+
+## 7. Documentation
 
 [Architecture](docs/ARCHITECTURE.md) · [Interview Demo](docs/INTERVIEW_DEMO.md) · [Test Report](docs/TEST_REPORT.md) · [Skill Coverage](docs/SKILL_COVERAGE.md) · [Known Limits](docs/KNOWN_LIMITS.md) · [Security](SECURITY.md)
 
