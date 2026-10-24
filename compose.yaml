@@ -1,0 +1,56 @@
+name: java-order-inventory
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: shop
+      MYSQL_USER: shop
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?Set MYSQL_PASSWORD in .env}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+    networks: [backend]
+  redis:
+    image: redis:7.4-alpine
+    command: ["redis-server","--save","","--appendonly","no"]
+    networks: [backend]
+  rabbitmq:
+    image: rabbitmq:4.1-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:?Set RABBITMQ_USER in .env}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS:?Set RABBITMQ_PASS in .env}
+    ports:
+      - "127.0.0.1:15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    networks: [backend]
+  api:
+    build: .
+    environment:
+      APP_API_KEY: ${APP_API_KEY:?Set APP_API_KEY in .env}
+      DB_URL: jdbc:mysql://mysql:3306/shop
+      DB_USER: shop
+      DB_PASSWORD: ${MYSQL_PASSWORD:?Set MYSQL_PASSWORD in .env}
+      REDIS_HOST: redis
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_USER: ${RABBITMQ_USER:?Set RABBITMQ_USER in .env}
+      RABBITMQ_PASS: ${RABBITMQ_PASS:?Set RABBITMQ_PASS in .env}
+    depends_on:
+      mysql: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+      redis: { condition: service_started }
+    ports:
+      - "127.0.0.1:8080:8080"
+    networks: [backend]
+networks:
+  backend: {}
+volumes:
+  mysql_data: {}

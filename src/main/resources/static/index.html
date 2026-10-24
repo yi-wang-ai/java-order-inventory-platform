@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Order + Inventory | Local Engineering Demo</title>
+<style>
+:root{font-family:system-ui,-apple-system,sans-serif;color:#223147;background:#f5f7fb}*{box-sizing:border-box}body{margin:0}header{background:#182a43;color:white;padding:25px max(18px,calc((100vw - 1000px)/2))}header h1{font-size:24px;margin:0 0 8px}header p{margin:0;opacity:.78}main{max-width:1000px;margin:24px auto;padding:0 14px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.card{background:#fff;border:1px solid #dce3ed;border-radius:12px;padding:20px;box-shadow:0 3px 12px #1b2b3d0d}.wide{grid-column:1/-1}h2{font-size:17px;margin:0 0 12px}label{display:block;font-size:12px;color:#576a7e;margin:12px 0 4px}input{width:100%;padding:10px;border:1px solid #cbd6e4;border-radius:7px;font:inherit}button{border:0;background:#2458ab;color:#fff;padding:10px 14px;border-radius:8px;margin-top:12px;cursor:pointer;font:inherit}button:hover{background:#153f84}button:focus-visible,input:focus-visible{outline:2px solid #156fbc;outline-offset:2px}.secondary{background:#e9eff8;color:#234a7a}.secondary:hover{background:#dce6f5}pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px;line-height:1.5;background:#eff3f8;padding:12px;border-radius:8px;min-height:60px}.hint{font-size:12px;color:#687b90}#notice{font-size:13px;margin-top:8px;color:#225b45}@media(max-width:700px){main{grid-template-columns:1fr}.wide{grid-column:auto}}
+</style>
+</head>
+<body>
+<header><h1>Order & Inventory Platform</h1><p>Spring Boot · MySQL · Redis · RabbitMQ · Transactional outbox</p></header>
+<main>
+<section class="card wide"><h2>1 · Connect to the local demo</h2><label for="key">API key (kept in this tab only)</label><input id="key" type="password" placeholder="Paste APP_API_KEY from your .env" autocomplete="off"><p class="hint">This interface is a developer demo. Use only with a local trusted API.</p></section>
+<section class="card"><h2>2 · Create a product</h2><label for="sku">SKU</label><input id="sku" value="BOOK-101"><label for="stock">Available stock</label><input id="stock" type="number" value="5" min="0"><label for="price">Price (cents)</label><input id="price" type="number" value="2599" min="1"><button id="add">Create product</button><button id="query" class="secondary">Check stock</button></section>
+<section class="card"><h2>3 · Place an order</h2><label for="orderSku">SKU</label><input id="orderSku" value="BOOK-101"><label for="qty">Quantity</label><input id="qty" type="number" value="2" min="1"><label for="idempotency">Idempotency key</label><input id="idempotency" placeholder="Create once; reuse to retry"><button id="newKey" class="secondary">Generate key</button><button id="place">Place order</button></section>
+<section class="card wide"><h2>4 · Inspect the result</h2><label for="orderId">Order ID</label><input id="orderId" placeholder="Populated after placing an order"><button id="read">Get order</button><button id="cancel" class="secondary">Cancel order</button><button id="events" class="secondary">Delivered events</button><button id="diagnostics" class="secondary">Outbox status</button><p id="notice" role="status" aria-live="polite"></p><pre id="output" aria-live="polite">No requests yet.</pre></section>
+</main>
+<script>
+'use strict';
+const el = id => document.getElementById(id);
+async function request(path,method='GET',body=null,extra={}) {
+  const headers={'X-API-Key':el('key').value,...extra};
+  if(body!==null)headers['Content-Type']='application/json';
+  const response=await fetch(path,{method,headers,body:body===null?undefined:JSON.stringify(body)});
+  const payload=await response.json().catch(()=>({error:'Non-JSON response'}));
+  el('output').textContent=JSON.stringify(payload,null,2);
+  el('notice').textContent=response.ok?'Success: '+response.status:'Request failed: '+response.status;
+  if(!response.ok)throw Error(payload.error||('HTTP '+response.status));
+  return payload;
+}
+async function guarded(fn){try{await fn();}catch(err){el('notice').textContent=String(err.message||err)}}
+el('add').onclick=()=>guarded(()=>request('/api/products','POST',{sku:el('sku').value,stock:Number(el('stock').value),priceCents:Number(el('price').value)}));
+el('query').onclick=()=>guarded(()=>request('/api/products/'+encodeURIComponent(el('sku').value)));
+el('newKey').onclick=()=>{el('idempotency').value=crypto.randomUUID()};
+el('newKey').click();
+el('place').onclick=()=>guarded(async()=>{const data=await request('/api/orders','POST',{sku:el('orderSku').value,quantity:Number(el('qty').value)},{'Idempotency-Key':el('idempotency').value});el('orderId').value=data.id});
+el('read').onclick=()=>guarded(()=>request('/api/orders/'+encodeURIComponent(el('orderId').value)));
+el('cancel').onclick=()=>guarded(()=>request('/api/orders/'+encodeURIComponent(el('orderId').value)+'/cancel','POST'));
+el('events').onclick=()=>guarded(()=>request('/api/orders/'+encodeURIComponent(el('orderId').value)+'/events'));
+el('diagnostics').onclick=()=>guarded(()=>request('/api/diagnostics'));
+</script>
+</body>
+</html>

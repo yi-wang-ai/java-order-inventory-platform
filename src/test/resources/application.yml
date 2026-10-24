@@ -1,0 +1,19 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:shoptests;MODE=MySQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ''
+  sql:
+    init:
+      mode: always
+  rabbitmq:
+    listener:
+      simple:
+        auto-startup: false
+app:
+  api-key: this-is-only-a-local-test-token
+  redis:
+    enabled: false
+  outbox:
+    enabled: false

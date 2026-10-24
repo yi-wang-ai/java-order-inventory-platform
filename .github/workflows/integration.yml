@@ -1,0 +1,22 @@
+name: Docker end-to-end demo
+on:
+  workflow_dispatch:
+jobs:
+  compose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create ephemeral demo configuration
+        run: |
+          cp .env.example .env
+          sed -i 's/replace-this-with-a-random-secret-at-least-32-chars/ci-only-valid-api-key-1234567890/g' .env
+      - name: Start all services
+        run: docker compose up -d --build --wait
+      - name: End-to-end API and broker smoke test
+        run: APP_API_KEY=ci-only-valid-api-key-1234567890 ./scripts/demo.sh
+      - name: Container logs on failure
+        if: failure()
+        run: docker compose logs --tail=150
+      - name: Clean up
+        if: always()
+        run: docker compose down -v

@@ -1,0 +1,29 @@
+CREATE TABLE IF NOT EXISTS products (
+    sku VARCHAR(64) PRIMARY KEY,
+    stock INT NOT NULL,
+    price_cents BIGINT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS shop_orders (
+    id VARCHAR(36) PRIMARY KEY,
+    request_key VARCHAR(100) NOT NULL UNIQUE,
+    sku VARCHAR(64) NOT NULL,
+    quantity INT NOT NULL,
+    total_cents BIGINT NOT NULL,
+    status VARCHAR(16) NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS outbox_events (
+    event_id VARCHAR(36) PRIMARY KEY,
+    order_id VARCHAR(36) NOT NULL,
+    event_type VARCHAR(40) NOT NULL,
+    payload TEXT NOT NULL,
+    published BOOLEAN NOT NULL DEFAULT FALSE
+);
+
+CREATE TABLE IF NOT EXISTS received_events (
+    event_id VARCHAR(36) PRIMARY KEY,
+    order_id VARCHAR(36) NOT NULL,
+    received_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

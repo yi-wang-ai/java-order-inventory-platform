@@ -1,0 +1,39 @@
+server:
+  port: 8080
+spring:
+  application:
+    name: java-order-inventory
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/shop}
+    username: ${DB_USER:shop}
+    password: ${DB_PASSWORD:}
+  sql:
+    init:
+      mode: always
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      connect-timeout: 1s
+      timeout: 1s
+  rabbitmq:
+    publisher-confirm-type: simple
+    host: ${RABBITMQ_HOST:localhost}
+    port: 5672
+    username: ${RABBITMQ_USER:shop}
+    password: ${RABBITMQ_PASS:}
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
+app:
+  api-key: ${APP_API_KEY}
+  redis:
+    enabled: ${APP_REDIS_ENABLED:true}
+  outbox:
+    enabled: ${APP_OUTBOX_ENABLED:true}
+    delay-ms: 2000
