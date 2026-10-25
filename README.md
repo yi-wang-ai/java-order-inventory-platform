@@ -30,6 +30,8 @@ flowchart LR
   G --> C
 ```
 
+![Web UI — create product, place order, check stock](docs/images/web-ui-stock-check.jpg)
+
 ## 3. Quick start
 
 Requires **Docker and Docker Compose**.
