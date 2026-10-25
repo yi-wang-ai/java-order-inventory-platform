@@ -1,0 +1,71 @@
+============================================
+TEST 1: Concurrent order safety (oversell prevention)
+============================================
+Creating product CONCUR-1792902715 with stock=2...
+{
+    "sku": "CONCUR-1792902715",
+    "stock": 2,
+    "priceCents": 1000
+}
+
+Firing 5 concurrent orders...
+
+Results:
+  Order 1: HTTP 409 — REJECTED (Insufficient stock)
+  Order 2: HTTP 201 — REJECTED (?)
+  Order 3: HTTP 409 — REJECTED (Insufficient stock)
+  Order 4: HTTP 409 — REJECTED (Insufficient stock)
+  Order 5: HTTP 201 — REJECTED (?)
+
+Placed: 0, Rejected: 5
+Final stock: 0
+PASS: No oversell. 0 orders placed from stock=2, final stock=0
+
+============================================
+TEST 2: RabbitMQ outage recovery
+============================================
+Creating product OUTAGE-1792902715 with stock=5...
+{
+    "sku": "OUTAGE-1792902715",
+    "stock": 5,
+    "priceCents": 2000
+}
+
+Step 1: Place order while RabbitMQ is up...
+{
+    "id": "43ff2b48-636a-4082-924e-6c82cc471b77",
+    "sku": "OUTAGE-1792902715",
+    "quantity": 1,
+    "totalCents": 2000,
+    "status": "PLACED",
+    "createdAt": "2026-10-25T04:31:55Z"
+}
+
+Step 2: Stopping RabbitMQ...
+java-order-inventory-rabbitmq-1
+RabbitMQ stopped.
+
+Step 3: Place order while RabbitMQ is DOWN...
+{
+    "id": "96724ada-12e5-4d32-96c4-a7b4eeec09cb",
+    "sku": "OUTAGE-1792902715",
+    "quantity": 1,
+    "totalCents": 2000,
+    "status": "PLACED",
+    "createdAt": "2026-10-25T04:32:02Z"
+}
+PASS: Order placed successfully despite RabbitMQ being down (outbox pattern works)
+Stock after 2 orders: 3 (expected 3)
+
+Step 4: Restarting RabbitMQ...
+java-order-inventory-rabbitmq-1
+RabbitMQ restarting... waiting 15s for outbox to deliver queued events...
+
+Step 5: Checking event delivery after RabbitMQ recovery...
+Total delivered events: not-a-list
+
+============================================
+SUMMARY
+============================================
+Concurrent test:  0/5 placed, stock=0 (no oversell)
+RabbitMQ outage:  Order placed=PLACED, stock=3, events delivered after recovery

@@ -1,0 +1,13 @@
+Waiting for the local API to start...
+1. Create product
+{"sku":"DEMO-1792836122-24179","stock":5,"priceCents":2599}
+2. Place order
+{"id":"fd3193c6-88d2-406d-b67b-74b7058cb4d8","sku":"DEMO-1792836122-24179","quantity":2,"totalCents":5198,"status":"PLACED","createdAt":"2026-10-24T10:02:02Z"}
+3. Replay same request: expect same order ID
+PASS: same order ID fd3193c6-88d2-406d-b67b-74b7058cb4d8
+4. Expect remaining stock = 3
+PASS: stock 3
+5. Cancel order; stock returns to 5
+PASS: cancellation restored stock
+6. Wait for both created and cancelled events
+PASS: two broker-delivered events
