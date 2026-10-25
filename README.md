@@ -107,6 +107,10 @@ Tested on macOS with Docker Desktop. Full stack (`docker compose up --build`) de
 
 [Architecture](docs/ARCHITECTURE.md) · [Interview Demo](docs/INTERVIEW_DEMO.md) · [Test Report](docs/TEST_REPORT.md) · [Skill Coverage](docs/SKILL_COVERAGE.md) · [Known Limits](docs/KNOWN_LIMITS.md) · [Security](SECURITY.md)
 
+## Ownership
+
+This project was designed and built by Yi Wang as a portfolio demonstration. The application code (domain logic, API, outbox publisher, idempotent consumer), tests, Docker configuration, demo scripts, and documentation are original work. It uses the following upstream software: Spring Boot 3.5, MySQL, Redis, and RabbitMQ — each with their own licenses.
+
 ## License
 
 [MIT](LICENSE)
