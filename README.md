@@ -100,10 +100,26 @@ Tested on macOS with Docker Desktop. Full stack (`docker compose up --build`) de
 - **Cancellation** — `POST /api/orders/{id}/cancel` restores stock (3→5), recorded as CANCELLED
 - **Event delivery** — transactional outbox publishes 2 events (ORDER_CREATED, ORDER_CANCELLED) to RabbitMQ, confirmed delivered within seconds
 
+### Concurrent Order Safety (Oversell Prevention)
+
+Created a product with stock=2, then fired 5 simultaneous order requests (each qty=1, unique idempotency keys):
+
+- **Result:** exactly 2 orders placed (HTTP 201), 3 rejected with "Insufficient stock" (HTTP 409)
+- **Final stock:** 0 (correct — no oversell, no negative stock)
+- The conditional SQL `UPDATE ... SET stock = stock - ? WHERE stock >= ?` serializes under MySQL row locks
+
+### RabbitMQ Outage Recovery (Outbox Resilience)
+
+1. Placed an order while RabbitMQ was running — event delivered within seconds
+2. Stopped RabbitMQ container (`docker stop`)
+3. Placed another order — **HTTP 201 success** (order + outbox row committed to MySQL; broker unavailable does not block the order)
+4. Restarted RabbitMQ container (`docker start`)
+5. Outbox publisher retried and delivered the queued event — confirmed via `/api/orders/{id}/events`
+
 ### Limitations
 
 - **No horizontal scaling tested.** The outbox publisher is single-instance; clustered deployment would need leader election or partitioned polling.
-- **No load/stress testing.** Concurrent oversell prevention is tested in unit tests but not under real contention with multiple API instances.
+- **No multi-instance contention test.** Concurrent safety was verified with parallel API requests to a single instance; a multi-replica deployment with a shared database was not tested.
 
 ## 7. Documentation
 
